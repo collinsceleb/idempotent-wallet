@@ -6,5 +6,5 @@
     "ignore": [
         "src/**/*.spec.ts"
     ],
-    "exec": "ts-node --esm src/app.ts"
+    "exec": "node --import ./loader.js src/app.ts"
 }

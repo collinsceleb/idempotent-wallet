@@ -3,6 +3,8 @@ import { config } from './config/index.js';
 import { connectDatabase, syncDatabase } from './database/index.js';
 import { connectRedis, disconnectRedis } from './redis/index.js';
 import { healthRouter } from './routes/index.js';
+import { walletRoutes } from './modules/wallet/index.js';
+import { interestRoutes } from './modules/interest/index.js';
 
 const app: Application = express();
 
@@ -12,6 +14,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api', healthRouter);
+app.use('/api/wallet', walletRoutes);
+app.use('/api/interest', interestRoutes);
 
 // Root endpoint
 app.get('/', (_req: Request, res: Response) => {
