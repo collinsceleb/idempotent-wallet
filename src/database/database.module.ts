@@ -40,8 +40,9 @@ export const SEQUELIZE = 'SEQUELIZE';
                 Ledger.associate();
                 InterestLog.associate();
 
-                // Sync database if needed (optional here, or separate script)
-                // await sequelize.sync({ alter: configService.get<string>('nodeEnv') === 'development' });
+                // Sync database
+                await sequelize.sync({ alter: configService.get<string>('nodeEnv') === 'development' });
+                console.log('Database synchronized');
 
                 return sequelize;
             },
