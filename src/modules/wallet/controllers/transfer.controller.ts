@@ -151,8 +151,11 @@ export async function getWalletById(req: Request, res: Response): Promise<void> 
 export async function createNewWallet(req: Request, res: Response): Promise<void> {
     try {
         const { initialBalance = 0 } = req.body || {};
+        console.log('Controller received initialBalance:', initialBalance);
 
         const balance = parseFloat(initialBalance);
+        console.log('Controller parsed balance:', balance);
+
         if (isNaN(balance)) {
             res.status(400).json({
                 success: false,

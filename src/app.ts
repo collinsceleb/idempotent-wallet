@@ -12,6 +12,14 @@ const app: Application = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Debug middleware
+app.use((req: Request, _res: Response, next: NextFunction) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('Body:', JSON.stringify(req.body, null, 2));
+    next();
+});
+
 // Routes
 app.use('/api', healthRouter);
 app.use('/api/wallet', walletRoutes);

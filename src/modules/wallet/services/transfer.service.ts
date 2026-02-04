@@ -302,6 +302,7 @@ export async function getWalletOrThrow(walletId: string): Promise<Wallet> {
  * Create a new wallet with optional initial balance
  */
 export async function createWallet(initialBalance: number = 0): Promise<Wallet> {
+    console.log('Service createWallet called with:', initialBalance);
     if (initialBalance < 0) {
         throw new InvalidTransferError('Initial balance cannot be negative');
     }

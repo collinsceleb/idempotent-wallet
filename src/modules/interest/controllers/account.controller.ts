@@ -12,7 +12,7 @@ import {
  */
 export async function createNewAccount(req: Request, res: Response): Promise<void> {
     try {
-        const { initialBalance = '0' } = req.body;
+        const { initialBalance = '0' } = req.body || {};
 
         const account = await createAccount(initialBalance);
 
@@ -68,7 +68,7 @@ export async function getAccountById(req: Request, res: Response): Promise<void>
 export async function calculateInterest(req: Request, res: Response): Promise<void> {
     try {
         const id = req.params.id as string;
-        const { date } = req.body;
+        const { date } = req.body || {};
 
         const calculationDate = date ? new Date(date) : new Date();
 
