@@ -10,5 +10,6 @@ export {
     getInterestHistory,
     createAccount,
     getAccount,
+    getAccountOrThrow,
     DailyInterestResult,
 } from './interest.service.js';

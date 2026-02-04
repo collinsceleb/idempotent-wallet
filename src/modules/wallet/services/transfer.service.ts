@@ -288,6 +288,17 @@ export async function getWallet(walletId: string): Promise<Wallet | null> {
 }
 
 /**
+ * Get a wallet by ID or throw if not found
+ */
+export async function getWalletOrThrow(walletId: string): Promise<Wallet> {
+    const wallet = await getWallet(walletId);
+    if (!wallet) {
+        throw new WalletNotFoundError(walletId);
+    }
+    return wallet;
+}
+
+/**
  * Create a new wallet with optional initial balance
  */
 export async function createWallet(initialBalance: number = 0): Promise<Wallet> {
@@ -307,6 +318,9 @@ export async function getTransactionHistory(
     walletId: string,
     limit: number = 50
 ): Promise<TransactionLog[]> {
+    // Verify wallet exists
+    await getWalletOrThrow(walletId);
+
     return TransactionLog.findAll({
         where: {
             [Op.or]: [{ fromWalletId: walletId }, { toWalletId: walletId }],
@@ -323,6 +337,9 @@ export async function getLedgerEntries(
     walletId: string,
     limit: number = 50
 ): Promise<Ledger[]> {
+    // Verify wallet exists
+    await getWalletOrThrow(walletId);
+
     return Ledger.findAll({
         where: { walletId },
         order: [['createdAt', 'DESC']],

@@ -14,10 +14,10 @@ const router: RouterType = Router();
 router.post('/transfer', transfer);
 
 // Wallet management endpoints
-router.post('/wallets', createNewWallet);
-router.get('/wallets/:id', getWalletById);
-router.get('/wallets/:id/transactions', getWalletTransactions);
-router.get('/wallets/:id/ledger', getWalletLedger);
+router.post('/create', createNewWallet);
+router.get('/:id', getWalletById);
+router.get('/:id/transactions', getWalletTransactions);
+router.get('/:id/ledger', getWalletLedger);
 
 export default router;
 

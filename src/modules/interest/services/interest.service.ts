@@ -215,6 +215,9 @@ export async function getInterestHistory(
     accountId: string,
     limit: number = 30
 ): Promise<InterestLog[]> {
+    // Verify account exists
+    await getAccountOrThrow(accountId);
+
     return InterestLog.findAll({
         where: { accountId },
         order: [['calculationDate', 'DESC']],
@@ -242,4 +245,15 @@ export async function createAccount(initialBalance: string = '0'): Promise<Accou
  */
 export async function getAccount(accountId: string): Promise<Account | null> {
     return Account.findByPk(accountId);
+}
+
+/**
+ * Get an account by ID or throw if not found
+ */
+export async function getAccountOrThrow(accountId: string): Promise<Account> {
+    const account = await getAccount(accountId);
+    if (!account) {
+        throw new Error(`Account not found: ${accountId}`);
+    }
+    return account;
 }

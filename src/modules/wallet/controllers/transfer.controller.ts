@@ -2,13 +2,13 @@ import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import {
     executeTransfer,
-    getWallet,
     createWallet,
     getTransactionHistory,
     getLedgerEntries,
     InsufficientFundsError,
     WalletNotFoundError,
     InvalidTransferError,
+    getWalletOrThrow,
 } from '../services/index.js';
 
 /**
@@ -31,7 +31,7 @@ export async function transfer(req: Request, res: Response): Promise<void> {
             (req.headers['x-idempotency-key'] as string) ||
             uuidv4();
 
-        const { fromWalletId, toWalletId, amount } = req.body;
+        const { fromWalletId, toWalletId, amount } = req.body || {};
 
         // Validate required fields
         if (!fromWalletId || !toWalletId || amount === undefined) {
@@ -117,15 +117,7 @@ export async function getWalletById(req: Request, res: Response): Promise<void> 
     try {
         const id = req.params.id as string;
 
-        const wallet = await getWallet(id);
-
-        if (!wallet) {
-            res.status(404).json({
-                success: false,
-                error: 'Wallet not found',
-            });
-            return;
-        }
+        const wallet = await getWalletOrThrow(id);
 
         res.json({
             success: true,
@@ -137,6 +129,13 @@ export async function getWalletById(req: Request, res: Response): Promise<void> 
             },
         });
     } catch (error) {
+        if (error instanceof WalletNotFoundError) {
+            res.status(404).json({
+                success: false,
+                error: error.message,
+            });
+            return;
+        }
         console.error('Get wallet error:', error);
         res.status(500).json({
             success: false,
@@ -151,7 +150,7 @@ export async function getWalletById(req: Request, res: Response): Promise<void> 
  */
 export async function createNewWallet(req: Request, res: Response): Promise<void> {
     try {
-        const { initialBalance = 0 } = req.body;
+        const { initialBalance = 0 } = req.body || {};
 
         const balance = parseFloat(initialBalance);
         if (isNaN(balance)) {
@@ -198,15 +197,8 @@ export async function getWalletTransactions(req: Request, res: Response): Promis
         const id = req.params.id as string;
         const limit = parseInt(req.query.limit as string) || 50;
 
-        // Verify wallet exists
-        const wallet = await getWallet(id);
-        if (!wallet) {
-            res.status(404).json({
-                success: false,
-                error: 'Wallet not found',
-            });
-            return;
-        }
+        // Verify wallet exists (handled by service)
+        await getWalletOrThrow(id);
 
         const transactions = await getTransactionHistory(id, limit);
 
@@ -224,6 +216,14 @@ export async function getWalletTransactions(req: Request, res: Response): Promis
             })),
         });
     } catch (error) {
+        if (error instanceof WalletNotFoundError) {
+            res.status(404).json({
+                success: false,
+                error: error.message,
+            });
+            return;
+        }
+
         console.error('Get transactions error:', error);
         res.status(500).json({
             success: false,
@@ -241,15 +241,8 @@ export async function getWalletLedger(req: Request, res: Response): Promise<void
         const id = req.params.id as string;
         const limit = parseInt(req.query.limit as string) || 50;
 
-        // Verify wallet exists
-        const wallet = await getWallet(id);
-        if (!wallet) {
-            res.status(404).json({
-                success: false,
-                error: 'Wallet not found',
-            });
-            return;
-        }
+        // Verify wallet exists (handled by service)
+        await getWalletOrThrow(id);
 
         const ledgerEntries = await getLedgerEntries(id, limit);
 
@@ -267,6 +260,14 @@ export async function getWalletLedger(req: Request, res: Response): Promise<void
             })),
         });
     } catch (error) {
+        if (error instanceof WalletNotFoundError) {
+            res.status(404).json({
+                success: false,
+                error: error.message,
+            });
+            return;
+        }
+
         console.error('Get ledger error:', error);
         res.status(500).json({
             success: false,

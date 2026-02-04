@@ -9,5 +9,6 @@ export {
     InsufficientFundsError,
     WalletNotFoundError,
     InvalidTransferError,
+    getWalletOrThrow,
 } from './transfer.service.js';
 
