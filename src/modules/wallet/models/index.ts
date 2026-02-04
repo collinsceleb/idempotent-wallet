@@ -1,14 +1,14 @@
-export { Wallet, WalletAttributes, WalletCreationAttributes } from './Wallet.js';
+export { Wallet, WalletAttributes, WalletCreationAttributes } from './Wallet';
 export {
     TransactionLog,
     TransactionLogAttributes,
     TransactionLogCreationAttributes,
     TransactionStatus,
-} from './TransactionLog.js';
+} from './TransactionLog';
 export {
     Ledger,
     LedgerAttributes,
     LedgerCreationAttributes,
     LedgerEntryType,
-} from './Ledger.js';
+} from './Ledger';
 
