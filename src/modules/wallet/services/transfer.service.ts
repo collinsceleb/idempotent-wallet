@@ -37,6 +37,13 @@ export class InvalidTransferError extends Error {
     }
 }
 
+export class IdempotencyKeyNotFoundError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'IdempotencyKeyNotFoundError';
+    }
+}
+
 /**
  * Executes a transfer between two wallets with idempotency and race condition handling.
  *
@@ -49,7 +56,9 @@ export class InvalidTransferError extends Error {
 export async function executeTransfer(request: TransferRequest): Promise<TransferResult> {
     const { idempotencyKey, fromWalletId, toWalletId, amount } = request;
 
-    // Validate input
+    if (!idempotencyKey) {
+        throw new IdempotencyKeyNotFoundError('Idempotency-Key header is required for transfers.');
+    }
     if (amount <= 0) {
         throw new InvalidTransferError('Transfer amount must be greater than zero');
     }
@@ -58,13 +67,11 @@ export async function executeTransfer(request: TransferRequest): Promise<Transfe
         throw new InvalidTransferError('Cannot transfer to the same wallet');
     }
 
-    // Check for existing transaction with this idempotency key (before starting transaction)
     const existingTransaction = await TransactionLog.findOne({
         where: { idempotencyKey },
     });
 
     if (existingTransaction) {
-        // Return the existing result - idempotent behavior
         return {
             success: existingTransaction.status === TransactionStatus.COMPLETED,
             transactionLog: existingTransaction,
@@ -76,7 +83,6 @@ export async function executeTransfer(request: TransferRequest): Promise<Transfe
         };
     }
 
-    // Start database transaction
     const transaction = await sequelize.transaction({
         isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE,
     });
@@ -84,8 +90,6 @@ export async function executeTransfer(request: TransferRequest): Promise<Transfe
     let transactionLog: TransactionLog | null = null;
 
     try {
-        // Step 1: Create TransactionLog with PENDING status BEFORE any balance changes
-        // This ensures we have a record even if the process crashes
         try {
             transactionLog = await TransactionLog.create(
                 {
@@ -98,11 +102,9 @@ export async function executeTransfer(request: TransferRequest): Promise<Transfe
                 { transaction }
             );
         } catch (error) {
-            // Handle race condition where another request created the log first
             if (error instanceof UniqueConstraintError) {
                 await transaction.rollback();
 
-                // Fetch the existing transaction created by the other request
                 const existingLog = await TransactionLog.findOne({
                     where: { idempotencyKey },
                 });
@@ -120,9 +122,6 @@ export async function executeTransfer(request: TransferRequest): Promise<Transfe
             }
             throw error;
         }
-
-        // Step 2: Lock and fetch wallets in consistent order to prevent deadlocks
-        // Always lock the wallet with the smaller ID first
         const [firstWalletId, secondWalletId] =
             fromWalletId < toWalletId ? [fromWalletId, toWalletId] : [toWalletId, fromWalletId];
 
@@ -136,11 +135,9 @@ export async function executeTransfer(request: TransferRequest): Promise<Transfe
             lock: Transaction.LOCK.UPDATE,
         });
 
-        // Determine which wallet is sender and which is receiver
         const fromWallet = fromWalletId === firstWalletId ? firstWallet : secondWallet;
         const toWallet = toWalletId === firstWalletId ? firstWallet : secondWallet;
 
-        // Validate wallets exist
         if (!fromWallet) {
             await transactionLog.update(
                 {
@@ -165,7 +162,6 @@ export async function executeTransfer(request: TransferRequest): Promise<Transfe
             throw new WalletNotFoundError(toWalletId);
         }
 
-        // Step 3: Check sufficient balance
         if (fromWallet.balance < amount) {
             await transactionLog.update(
                 {
@@ -181,7 +177,6 @@ export async function executeTransfer(request: TransferRequest): Promise<Transfe
             );
         }
 
-        // Step 4: Execute the transfer - debit sender, credit receiver
         const fromBalanceBefore = fromWallet.balance;
         const toBalanceBefore = toWallet.balance;
         const fromBalanceAfter = parseFloat((fromWallet.balance - amount).toFixed(2));
@@ -201,7 +196,6 @@ export async function executeTransfer(request: TransferRequest): Promise<Transfe
             { transaction }
         );
 
-        // Step 5: Create ledger entries for double-entry bookkeeping
         await Ledger.create(
             {
                 walletId: fromWalletId,
@@ -228,7 +222,6 @@ export async function executeTransfer(request: TransferRequest): Promise<Transfe
             { transaction }
         );
 
-        // Step 6: Mark transaction as COMPLETED
         await transactionLog.update(
             {
                 status: TransactionStatus.COMPLETED,
@@ -236,10 +229,8 @@ export async function executeTransfer(request: TransferRequest): Promise<Transfe
             { transaction }
         );
 
-        // Commit the transaction
         await transaction.commit();
 
-        // Reload to get updated values
         await transactionLog.reload();
 
         return {
@@ -248,14 +239,10 @@ export async function executeTransfer(request: TransferRequest): Promise<Transfe
             message: 'Transfer completed successfully',
         };
     } catch (error) {
-        // Rollback on any error (if not already committed)
         try {
             await transaction.rollback();
         } catch {
-            // Transaction might already be committed or rolled back
         }
-
-        // Re-throw known errors
         if (
             error instanceof InsufficientFundsError ||
             error instanceof WalletNotFoundError ||
@@ -264,7 +251,6 @@ export async function executeTransfer(request: TransferRequest): Promise<Transfe
             throw error;
         }
 
-        // Mark transaction as failed if we have a log
         if (transactionLog) {
             try {
                 await transactionLog.update({
@@ -272,7 +258,6 @@ export async function executeTransfer(request: TransferRequest): Promise<Transfe
                     errorMessage: error instanceof Error ? error.message : 'Unknown error occurred',
                 });
             } catch {
-                // Best effort - log might be rolled back
             }
         }
 
@@ -338,7 +323,6 @@ export async function getLedgerEntries(
     walletId: string,
     limit: number = 50
 ): Promise<Ledger[]> {
-    // Verify wallet exists
     await getWalletOrThrow(walletId);
 
     return Ledger.findAll({

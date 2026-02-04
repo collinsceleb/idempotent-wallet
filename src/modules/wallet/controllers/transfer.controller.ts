@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { v4 as uuidv4 } from 'uuid';
 import {
     executeTransfer,
     createWallet,
@@ -28,9 +27,9 @@ export async function transfer(req: Request, res: Response): Promise<void> {
         // Get idempotency key from header or generate one
         const idempotencyKey =
             (req.headers['idempotency-key'] as string) ||
-            (req.headers['x-idempotency-key'] as string) ||
-            uuidv4();
+            (req.headers['x-idempotency-key'] as string)
 
+        // Validate request body
         const { fromWalletId, toWalletId, amount } = req.body || {};
 
         // Validate required fields
