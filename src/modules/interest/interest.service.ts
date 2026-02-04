@@ -1,8 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { UniqueConstraintError } from 'sequelize';
 import { Account, InterestLog } from './models/index';
 import { CreateAccountDto } from './dto/create-account.dto';
+
+// Custom Exceptions
+export class AccountNotFoundError extends HttpException {
+    constructor(accountId: string) {
+        super(`Account not found: ${accountId}`, HttpStatus.NOT_FOUND);
+    }
+}
+
+export class InvalidBalanceError extends HttpException {
+    constructor(message: string) {
+        super(message, HttpStatus.BAD_REQUEST);
+    }
+}
 
 // Configure Decimal.js for high precision
 Decimal.set({
@@ -102,7 +115,7 @@ export class InterestService {
         // Fetch the account
         const account = await Account.findByPk(accountId);
         if (!account) {
-            throw new Error(`Account not found: ${accountId}`);
+            throw new AccountNotFoundError(accountId);
         }
 
         // Calculate interest using Decimal.js for precision
@@ -206,7 +219,7 @@ export class InterestService {
         const balance = new Decimal(initialBalance);
 
         if (balance.isNegative()) {
-            throw new Error('Initial balance cannot be negative');
+            throw new InvalidBalanceError('Initial balance cannot be negative');
         }
 
         return Account.create({
@@ -221,7 +234,7 @@ export class InterestService {
     async getAccountOrThrow(accountId: string): Promise<Account> {
         const account = await this.getAccount(accountId);
         if (!account) {
-            throw new Error(`Account not found: ${accountId}`);
+            throw new AccountNotFoundError(accountId);
         }
         return account;
     }

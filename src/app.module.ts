@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { InterestModule } from './modules/interest/interest.module';
 import { AppController } from './app.controller';
+import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { RedisModule } from './common/redis/redis.module';
 import configuration from './common/config/configuration';
@@ -19,7 +20,7 @@ import configuration from './common/config/configuration';
         InterestModule,
     ],
     controllers: [AppController],
-    providers: [],
+    providers: [AppService],
 })
 export class AppModule {
 }
