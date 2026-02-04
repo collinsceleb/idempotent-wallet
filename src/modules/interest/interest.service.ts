@@ -1,7 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { UniqueConstraintError } from 'sequelize';
-import { Account, InterestLog } from './models/index';
+import { Account, InterestLog } from './entities/index';
 import { CreateAccountDto } from './dto/create-account.dto';
 
 // Custom Exceptions

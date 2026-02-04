@@ -1,8 +1,8 @@
 import { Module, Global } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Sequelize } from 'sequelize';
-import { Wallet, TransactionLog, Ledger } from '../modules/wallet/models/index';
-import { Account, InterestLog } from '../modules/interest/models/index';
+import { Wallet, TransactionLog, Ledger } from '../modules/wallet/entities/index';
+import { Account, InterestLog } from '../modules/interest/entities/index';
 
 export const SEQUELIZE = 'SEQUELIZE';
 

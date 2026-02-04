@@ -19,6 +19,7 @@ A Node.js/TypeScript implementation of an idempotent wallet transfer system and 
 
 ## Tech Stack
 
+- **Framework**: NestJS
 - **Runtime**: Node.js with TypeScript
 - **Database**: PostgreSQL with Sequelize ORM
 - **Cache**: Redis (ioredis)
@@ -29,24 +30,27 @@ A Node.js/TypeScript implementation of an idempotent wallet transfer system and 
 
 ```
 src/
-├── app.ts                          # Express application entry point
-├── config/                         # Environment configuration
-├── database/                       # Sequelize setup and migrations
+├── app.module.ts                   # Main application module
+├── app.controller.ts               # Health check and welcome controller
+├── app.service.ts                  # App-level business logic
+├── main.ts                         # Application entry point
+├── common/                         # Shared resources (config, redis, etc.)
+├── database/                       # Database module and configuration
 │   ├── migrations/                 # Database migrations
 │   └── config.cjs                  # Sequelize CLI config
 ├── modules/
 │   ├── wallet/                     # Part A: Idempotent Wallet
-│   │   ├── models/                 # Wallet, TransactionLog, Ledger models
-│   │   ├── services/               # Transfer logic with idempotency
-│   │   ├── controllers/            # HTTP request handlers
-│   │   └── routes/                 # Express routes
+│   │   ├── dto/                    # Data Transfer Objects
+│   │   ├── entities/               # Database models (Wallet, TransactionLog, Ledger)
+│   │   ├── wallet.controller.ts    # HTTP request handlers
+│   │   ├── wallet.service.ts       # Transfer logic with idempotency
+│   │   └── wallet.module.ts        # Wallet module definition
 │   └── interest/                   # Part B: Interest Accumulator
-│       ├── models/                 # Account, InterestLog models
-│       ├── services/               # Interest calculation with decimal.js
-│       ├── routes/                 # Express routes
-│       └── __tests__/              # Jest unit tests
-├── redis/                          # Redis client configuration
-└── routes/                         # Health check routes
+│       ├── dto/                    # Data Transfer Objects
+│       ├── entities/               # Database models (Account, InterestLog)
+│       ├── interest.controller.ts  # HTTP request handlers
+│       ├── interest.service.ts     # Interest calculation logic
+│       └── interest.module.ts      # Interest module definition
 ```
 
 ## Setup Instructions
@@ -121,7 +125,7 @@ pnpm start
 
 #### Create Wallet
 ```http
-POST /api/wallet/wallets
+POST /wallets
 Content-Type: application/json
 
 {
@@ -131,12 +135,12 @@ Content-Type: application/json
 
 #### Get Wallet
 ```http
-GET /api/wallet/wallets/:id
+GET /wallets/:id
 ```
 
 #### Transfer (with Idempotency)
 ```http
-POST /api/wallet/transfer
+POST /wallets/transfer
 Content-Type: application/json
 Idempotency-Key: unique-client-generated-uuid
 
@@ -154,12 +158,12 @@ Idempotency-Key: unique-client-generated-uuid
 
 #### Get Transaction History
 ```http
-GET /api/wallet/wallets/:id/transactions
+GET /wallets/:id/transactions
 ```
 
 #### Get Ledger Entries (Double-Entry Bookkeeping)
 ```http
-GET /api/wallet/wallets/:id/ledger
+GET /wallets/:id/ledger
 ```
 
 **Response:**
@@ -184,7 +188,7 @@ GET /api/wallet/wallets/:id/ledger
 
 #### Create Account
 ```http
-POST /api/interest/accounts
+POST /accounts
 Content-Type: application/json
 
 {
@@ -194,7 +198,7 @@ Content-Type: application/json
 
 #### Calculate Daily Interest
 ```http
-POST /api/interest/accounts/:id/calculate-interest
+POST /accounts/:id/calculate-interest
 Content-Type: application/json
 
 {
@@ -219,7 +223,7 @@ Content-Type: application/json
 
 #### Get Interest History
 ```http
-GET /api/interest/accounts/:id/interest-history
+GET /accounts/:id/interest-history
 ```
 
 ## Testing

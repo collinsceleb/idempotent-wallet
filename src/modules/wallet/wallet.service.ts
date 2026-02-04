@@ -1,7 +1,7 @@
 import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
 import { Transaction, UniqueConstraintError, Op, Sequelize } from 'sequelize';
 import { SEQUELIZE } from '../../database/index';
-import { Wallet, TransactionLog, TransactionStatus, Ledger, LedgerEntryType } from './models/index';
+import { Wallet, TransactionLog, TransactionStatus, Ledger, LedgerEntryType } from './entities/index';
 import { CreateWalletDto } from './dto/create-wallet.dto';
 import { TransferDto } from './dto/transfer.dto';
 

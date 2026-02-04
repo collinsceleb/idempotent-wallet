@@ -1,2 +1,2 @@
-export * from './models/index';
+export * from './entities/index';
 export * from './interest.module';
