@@ -83,6 +83,30 @@ export class TransferService {
         let transactionLog: TransactionLog | null = null;
 
         try {
+            const [firstWalletId, secondWalletId] =
+                fromWalletId < toWalletId ? [fromWalletId, toWalletId] : [toWalletId, fromWalletId];
+
+            const firstWallet = await Wallet.findByPk(firstWalletId, {
+                transaction,
+                lock: Transaction.LOCK.UPDATE,
+            });
+
+            const secondWallet = await Wallet.findByPk(secondWalletId, {
+                transaction,
+                lock: Transaction.LOCK.UPDATE,
+            });
+
+            const fromWallet = fromWalletId === firstWalletId ? firstWallet : secondWallet;
+            const toWallet = toWalletId === firstWalletId ? firstWallet : secondWallet;
+
+            if (!fromWallet) {
+                throw new WalletNotFoundError(fromWalletId);
+            }
+
+            if (!toWallet) {
+                throw new WalletNotFoundError(toWalletId);
+            }
+
             try {
                 transactionLog = await TransactionLog.create(
                     {
@@ -114,45 +138,6 @@ export class TransferService {
                     throw new Error('Failed to retrieve existing transaction log');
                 }
                 throw error;
-            }
-            const [firstWalletId, secondWalletId] =
-                fromWalletId < toWalletId ? [fromWalletId, toWalletId] : [toWalletId, fromWalletId];
-
-            const firstWallet = await Wallet.findByPk(firstWalletId, {
-                transaction,
-                lock: Transaction.LOCK.UPDATE,
-            });
-
-            const secondWallet = await Wallet.findByPk(secondWalletId, {
-                transaction,
-                lock: Transaction.LOCK.UPDATE,
-            });
-
-            const fromWallet = fromWalletId === firstWalletId ? firstWallet : secondWallet;
-            const toWallet = toWalletId === firstWalletId ? firstWallet : secondWallet;
-
-            if (!fromWallet) {
-                await transactionLog.update(
-                    {
-                        status: TransactionStatus.FAILED,
-                        errorMessage: `Source wallet not found: ${fromWalletId}`,
-                    },
-                    { transaction }
-                );
-                await transaction.commit();
-                throw new WalletNotFoundError(fromWalletId);
-            }
-
-            if (!toWallet) {
-                await transactionLog.update(
-                    {
-                        status: TransactionStatus.FAILED,
-                        errorMessage: `Destination wallet not found: ${toWalletId}`,
-                    },
-                    { transaction }
-                );
-                await transaction.commit();
-                throw new WalletNotFoundError(toWalletId);
             }
 
             if (fromWallet.balance < amount) {

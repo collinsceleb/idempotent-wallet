@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional } from 'sequelize';
+import { DataTypes, Model, Optional, Sequelize } from 'sequelize';
 
 import { Account } from './Account';
 
@@ -33,7 +33,7 @@ export class InterestLog
     // Associations
     public account?: Account;
 
-    static initialize(sequelize: any) {
+    static initialize(sequelize: Sequelize) {
         InterestLog.init(
             {
                 id: {

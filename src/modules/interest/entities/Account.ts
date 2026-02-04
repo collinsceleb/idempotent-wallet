@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional } from 'sequelize';
+import { DataTypes, Model, Optional, Sequelize } from 'sequelize';
 
 
 export interface AccountAttributes {
@@ -16,7 +16,7 @@ export class Account extends Model<AccountAttributes, AccountCreationAttributes>
     public readonly createdAt!: Date;
     public readonly updatedAt!: Date;
 
-    static initialize(sequelize: any) {
+    static initialize(sequelize: Sequelize) {
         Account.init(
             {
                 id: {
@@ -25,9 +25,9 @@ export class Account extends Model<AccountAttributes, AccountCreationAttributes>
                     primaryKey: true,
                 },
                 balance: {
-                    type: DataTypes.DECIMAL(20, 8),
+                    type: DataTypes.DECIMAL(20, 2),
                     allowNull: false,
-                    defaultValue: '0.00000000',
+                    defaultValue: '0.00',
                 },
             },
             {

@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional } from 'sequelize';
+import { DataTypes, Model, Optional, Sequelize } from 'sequelize';
 
 
 export interface WalletAttributes {
@@ -16,7 +16,7 @@ export class Wallet extends Model<WalletAttributes, WalletCreationAttributes> im
     public readonly createdAt!: Date;
     public readonly updatedAt!: Date;
 
-    static initialize(sequelize: any) {
+    static initialize(sequelize: Sequelize) {
         Wallet.init(
             {
                 id: {

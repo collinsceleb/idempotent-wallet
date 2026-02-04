@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional } from 'sequelize';
+import { DataTypes, Model, Optional, Sequelize } from 'sequelize';
 
 import { Wallet } from './Wallet';
 
@@ -41,7 +41,7 @@ export class TransactionLog
     public fromWallet?: Wallet;
     public toWallet?: Wallet;
 
-    static initialize(sequelize: any) {
+    static initialize(sequelize: Sequelize) {
         TransactionLog.init(
             {
                 id: {

@@ -19,11 +19,7 @@ import { CalculateInterestDto } from './dto/calculate-interest.dto';
 export class InterestController {
     constructor(private readonly interestService: InterestService) { }
 
-    /**
-     * POST /accounts
-     * Create a new account with optional initial balance
-     */
-    @Post()
+    @Post('create-account')
     async createNewAccount(
         @Body() createAccountDto: CreateAccountDto,
         @Res() res: Response
@@ -40,10 +36,6 @@ export class InterestController {
         });
     }
 
-    /**
-     * GET /accounts/:id
-     * Get account details by ID
-     */
     @Get(':id')
     async getAccountById(@Param('id') id: string, @Res() res: Response): Promise<void> {
         const account = await this.interestService.getAccountOrThrow(id);
@@ -59,10 +51,6 @@ export class InterestController {
         });
     }
 
-    /**
-     * POST /accounts/:id/calculate-interest
-     * Calculate daily interest for an account
-     */
     @Post(':id/calculate-interest')
     async calculateInterest(
         @Param('id') id: string,
@@ -81,10 +69,6 @@ export class InterestController {
         });
     }
 
-    /**
-     * GET /accounts/:id/interest-history
-     * Get interest calculation history for an account
-     */
     @Get(':id/interest-history')
     async getAccountInterestHistory(
         @Param('id') id: string,

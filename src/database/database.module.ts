@@ -28,19 +28,16 @@ export const SEQUELIZE = 'SEQUELIZE';
                     },
                 });
 
-                // Initialize models
                 Wallet.initialize(sequelize);
                 TransactionLog.initialize(sequelize);
                 Ledger.initialize(sequelize);
                 Account.initialize(sequelize);
                 InterestLog.initialize(sequelize);
 
-                // Associate models
                 TransactionLog.associate();
                 Ledger.associate();
                 InterestLog.associate();
 
-                // Sync database
                 await sequelize.sync({ alter: configService.get<string>('nodeEnv') === 'development' });
                 console.log('Database synchronized');
 

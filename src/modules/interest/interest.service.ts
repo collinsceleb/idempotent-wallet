@@ -4,7 +4,6 @@ import { UniqueConstraintError } from 'sequelize';
 import { Account, InterestLog } from './entities/index';
 import { CreateAccountDto } from './dto/create-account.dto';
 
-// Custom Exceptions
 export class AccountNotFoundError extends HttpException {
     constructor(accountId: string) {
         super(`Account not found: ${accountId}`, HttpStatus.NOT_FOUND);
@@ -17,13 +16,10 @@ export class InvalidBalanceError extends HttpException {
     }
 }
 
-// Configure Decimal.js for high precision
 Decimal.set({
     precision: 20,
     rounding: Decimal.ROUND_HALF_UP,
 });
-
-// Annual interest rate: 27.5%
 export const ANNUAL_INTEREST_RATE = new Decimal('0.275');
 
 export interface DailyInterestResult {
@@ -83,11 +79,9 @@ export class InterestService {
         accountId: string,
         date: Date = new Date()
     ): Promise<DailyInterestResult> {
-        // Format date as YYYY-MM-DD for DATEONLY field
         const calculationDate = date.toISOString().split('T')[0];
         const year = date.getFullYear();
 
-        // Check if interest has already been calculated for this date (idempotency)
         const existingLog = await InterestLog.findOne({
             where: {
                 accountId,
@@ -96,7 +90,6 @@ export class InterestService {
         });
 
         if (existingLog) {
-            // Return existing calculation result
             return {
                 accountId: existingLog.accountId,
                 calculationDate: existingLog.calculationDate,
@@ -112,13 +105,10 @@ export class InterestService {
             };
         }
 
-        // Fetch the account
         const account = await Account.findByPk(accountId);
         if (!account) {
             throw new AccountNotFoundError(accountId);
         }
-
-        // Calculate interest using Decimal.js for precision
         const principal = new Decimal(account.balance);
         const daysInYear = this.getDaysInYear(year);
         const dailyRate = this.calculateDailyRate(year);
@@ -126,7 +116,6 @@ export class InterestService {
         const newBalance = this.calculateNewBalance(principal, interest);
 
         try {
-            // Record the interest calculation
             const interestLog = await InterestLog.create({
                 accountId,
                 calculationDate,
@@ -137,7 +126,6 @@ export class InterestService {
                 newBalance: newBalance.toFixed(8),
             });
 
-            // Update account balance
             await account.update({
                 balance: newBalance.toFixed(8),
             });
@@ -154,7 +142,6 @@ export class InterestService {
                 isNew: true,
             };
         } catch (error) {
-            // Handle race condition where another process created the log
             if (error instanceof UniqueConstraintError) {
                 const existingLog = await InterestLog.findOne({
                     where: {

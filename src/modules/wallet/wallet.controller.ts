@@ -22,10 +22,6 @@ import { TransferDto } from './dto/transfer.dto';
 export class TransferController {
     constructor(private readonly transferService: TransferService) { }
 
-    /**
-     * POST /wallets/transfer
-     * Execute a transfer between two wallets with idempotency support.
-     */
     @Post('transfer')
     async transfer(
         @Body() transferDto: TransferDto,
@@ -35,11 +31,8 @@ export class TransferController {
     ): Promise<void> {
         const key = idempotencyKey || xIdempotencyKey;
 
-        // Note: Validation is now handled by TransferDto and ValidationPipe
-
         const result = await this.transferService.executeTransfer(transferDto, key);
 
-        // Return appropriate status code
         const statusCode = result.isIdempotent ? HttpStatus.OK : HttpStatus.CREATED;
 
         res.status(statusCode).json({
@@ -58,10 +51,6 @@ export class TransferController {
         });
     }
 
-    /**
-     * GET /wallets/:id
-     * Get wallet details by ID
-     */
     @Get(':id')
     async getWalletById(@Param('id') id: string, @Res() res: Response): Promise<void> {
         const wallet = await this.transferService.getWalletOrThrow(id);
@@ -77,11 +66,7 @@ export class TransferController {
         });
     }
 
-    /**
-     * POST /wallets
-     * Create a new wallet with optional initial balance
-     */
-    @Post()
+    @Post('create-wallet')
     async createNewWallet(@Body() createWalletDto: CreateWalletDto, @Res() res: Response): Promise<void> {
         const wallet = await this.transferService.createWallet(createWalletDto);
 
@@ -95,10 +80,6 @@ export class TransferController {
         });
     }
 
-    /**
-     * GET /wallets/:id/transactions
-     * Get transaction history for a wallet
-     */
     @Get(':id/transactions')
     async getWalletTransactions(
         @Param('id') id: string,
@@ -123,10 +104,6 @@ export class TransferController {
         });
     }
 
-    /**
-     * GET /wallets/:id/ledger
-     * Get ledger entries for a wallet (double-entry bookkeeping)
-     */
     @Get(':id/ledger')
     async getWalletLedger(
         @Param('id') id: string,

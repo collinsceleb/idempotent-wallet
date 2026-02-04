@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional } from 'sequelize';
+import { DataTypes, Model, Optional, Sequelize } from 'sequelize';
 
 import { Wallet } from './Wallet';
 import { TransactionLog } from './TransactionLog';
@@ -38,7 +38,7 @@ export class Ledger extends Model<LedgerAttributes, LedgerCreationAttributes> im
     public wallet?: Wallet;
     public transactionLog?: TransactionLog;
 
-    static initialize(sequelize: any) {
+    static initialize(sequelize: Sequelize) {
         Ledger.init(
             {
                 id: {
