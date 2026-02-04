@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
 import { Transaction, UniqueConstraintError, Op, Sequelize } from 'sequelize';
 import { SEQUELIZE } from '../../database/index';
 import { Wallet, TransactionLog, TransactionStatus, Ledger, LedgerEntryType } from './models/index';
@@ -12,31 +12,27 @@ export interface TransferResult {
     isIdempotent?: boolean;
 }
 
-export class InsufficientFundsError extends Error {
+export class InsufficientFundsError extends HttpException {
     constructor(message: string = 'Insufficient funds') {
-        super(message);
-        this.name = 'InsufficientFundsError';
+        super(message, HttpStatus.BAD_REQUEST);
     }
 }
 
-export class WalletNotFoundError extends Error {
+export class WalletNotFoundError extends HttpException {
     constructor(walletId: string) {
-        super(`Wallet not found: ${walletId}`);
-        this.name = 'WalletNotFoundError';
+        super(`Wallet not found: ${walletId}`, HttpStatus.NOT_FOUND);
     }
 }
 
-export class InvalidTransferError extends Error {
+export class InvalidTransferError extends HttpException {
     constructor(message: string) {
-        super(message);
-        this.name = 'InvalidTransferError';
+        super(message, HttpStatus.BAD_REQUEST);
     }
 }
 
-export class IdempotencyKeyNotFoundError extends Error {
+export class IdempotencyKeyNotFoundError extends HttpException {
     constructor(message: string) {
-        super(message);
-        this.name = 'IdempotencyKeyNotFoundError';
+        super(message, HttpStatus.BAD_REQUEST);
     }
 }
 
