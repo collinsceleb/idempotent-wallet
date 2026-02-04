@@ -14,7 +14,7 @@ import { CreateAccountDto } from './dto/create-account.dto';
 import { CalculateInterestDto } from './dto/calculate-interest.dto';
 
 @Controller('accounts')
-export class AccountController {
+export class InterestController {
     constructor(private readonly interestService: InterestService) { }
 
     /**

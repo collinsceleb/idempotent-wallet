@@ -16,9 +16,9 @@ import {
     WalletNotFoundError,
     InvalidTransferError,
     IdempotencyKeyNotFoundError
-} from '../services/transfer.service';
-import { CreateWalletDto } from '../dto/create-wallet.dto';
-import { TransferDto } from '../dto/transfer.dto';
+} from './wallet.service';
+import { CreateWalletDto } from './dto/create-wallet.dto';
+import { TransferDto } from './dto/transfer.dto';
 
 @Controller('wallets')
 export class TransferController {
