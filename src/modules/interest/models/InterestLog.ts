@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '../../../database/index.js';
-import { Account } from './Account.js';
+
+import { Account } from './Account';
 
 export interface InterestLogAttributes {
     id: string;
@@ -30,80 +30,77 @@ export class InterestLog
     public readonly createdAt!: Date;
 
     // Associations
+    // Associations
     public account?: Account;
-}
 
-InterestLog.init(
-    {
-        id: {
-            type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
-            primaryKey: true,
-        },
-        accountId: {
-            type: DataTypes.UUID,
-            allowNull: false,
-            field: 'account_id',
-            references: {
-                model: 'accounts',
-                key: 'id',
-            },
-        },
-        calculationDate: {
-            type: DataTypes.DATEONLY,
-            allowNull: false,
-            field: 'calculation_date',
-        },
-        principalBalance: {
-            type: DataTypes.DECIMAL(20, 8),
-            allowNull: false,
-            field: 'principal_balance',
-        },
-        interestAmount: {
-            type: DataTypes.DECIMAL(20, 8),
-            allowNull: false,
-            field: 'interest_amount',
-        },
-        annualRate: {
-            type: DataTypes.DECIMAL(10, 6),
-            allowNull: false,
-            field: 'annual_rate',
-        },
-        daysInYear: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            field: 'days_in_year',
-        },
-        newBalance: {
-            type: DataTypes.DECIMAL(20, 8),
-            allowNull: false,
-            field: 'new_balance',
-        },
-    },
-    {
-        sequelize,
-        modelName: 'InterestLog',
-        tableName: 'interest_logs',
-        timestamps: true,
-        updatedAt: false, // Interest logs are immutable
-        underscored: true,
-        indexes: [
+    static initialize(sequelize: any) {
+        InterestLog.init(
             {
-                unique: true,
-                fields: ['account_id', 'calculation_date'],
-                name: 'interest_logs_account_date_unique',
+                id: {
+                    type: DataTypes.UUID,
+                    defaultValue: DataTypes.UUIDV4,
+                    primaryKey: true,
+                },
+                accountId: {
+                    type: DataTypes.UUID,
+                    allowNull: false,
+                    field: 'account_id',
+                    references: {
+                        model: 'accounts',
+                        key: 'id',
+                    },
+                },
+                calculationDate: {
+                    type: DataTypes.DATEONLY,
+                    allowNull: false,
+                    field: 'calculation_date',
+                },
+                principalBalance: {
+                    type: DataTypes.DECIMAL(20, 8),
+                    allowNull: false,
+                    field: 'principal_balance',
+                },
+                interestAmount: {
+                    type: DataTypes.DECIMAL(20, 8),
+                    allowNull: false,
+                    field: 'interest_amount',
+                },
+                annualRate: {
+                    type: DataTypes.DECIMAL(10, 6),
+                    allowNull: false,
+                    field: 'annual_rate',
+                },
+                daysInYear: {
+                    type: DataTypes.INTEGER,
+                    allowNull: false,
+                    field: 'days_in_year',
+                },
+                newBalance: {
+                    type: DataTypes.DECIMAL(20, 8),
+                    allowNull: false,
+                    field: 'new_balance',
+                },
             },
-        ],
+            {
+                sequelize,
+                modelName: 'InterestLog',
+                tableName: 'interest_logs',
+                timestamps: true,
+                updatedAt: false, // Interest logs are immutable
+                underscored: true,
+            }
+        );
     }
-);
 
-// Define associations
-InterestLog.belongsTo(Account, {
-    foreignKey: 'accountId',
-    as: 'account',
-});
+    static associate() {
+        InterestLog.belongsTo(Account, {
+            foreignKey: 'accountId',
+            as: 'account',
+        });
 
-Account.hasMany(InterestLog, {
-    foreignKey: 'accountId',
-    as: 'interestLogs',
-});
+        Account.hasMany(InterestLog, {
+            foreignKey: 'accountId',
+            as: 'interestLogs',
+        });
+    }
+}

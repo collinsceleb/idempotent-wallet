@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Decimal } from 'decimal.js';
-import { InterestService, ANNUAL_INTEREST_RATE } from '../services/interest.service.js';
+import { InterestService, ANNUAL_INTEREST_RATE } from '../interest.service.js';
 
 describe('InterestService', () => {
     let service: InterestService;

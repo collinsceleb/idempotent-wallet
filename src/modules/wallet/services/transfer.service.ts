@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { Transaction, UniqueConstraintError, Op } from 'sequelize';
-import { sequelize } from '../../../database/index';
+import { Injectable, Inject } from '@nestjs/common';
+import { Transaction, UniqueConstraintError, Op, Sequelize } from 'sequelize';
+import { SEQUELIZE } from '../../../database/index';
 import { Wallet, TransactionLog, TransactionStatus, Ledger, LedgerEntryType } from '../models/index';
 import { CreateWalletDto } from '../dto/create-wallet.dto';
 import { TransferDto } from '../dto/transfer.dto';
@@ -42,6 +42,11 @@ export class IdempotencyKeyNotFoundError extends Error {
 
 @Injectable()
 export class TransferService {
+    constructor(
+        @Inject(SEQUELIZE)
+        private readonly sequelize: Sequelize
+    ) { }
+
     /**
      * Executes a transfer between two wallets with idempotency and race condition handling.
      */
@@ -75,7 +80,7 @@ export class TransferService {
             };
         }
 
-        const transaction = await sequelize.transaction({
+        const transaction = await this.sequelize.transaction({
             isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE,
         });
 

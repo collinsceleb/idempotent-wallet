@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '../../../database/index.js';
+
 
 export interface WalletAttributes {
     id: string;
@@ -15,30 +15,32 @@ export class Wallet extends Model<WalletAttributes, WalletCreationAttributes> im
     public balance!: number;
     public readonly createdAt!: Date;
     public readonly updatedAt!: Date;
-}
 
-Wallet.init(
-    {
-        id: {
-            type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
-            primaryKey: true,
-        },
-        balance: {
-            type: DataTypes.DECIMAL(20, 2),
-            allowNull: false,
-            defaultValue: 0.00,
-            get() {
-                const value = this.getDataValue('balance');
-                return value === null ? 0 : parseFloat(value.toString());
+    static initialize(sequelize: any) {
+        Wallet.init(
+            {
+                id: {
+                    type: DataTypes.UUID,
+                    defaultValue: DataTypes.UUIDV4,
+                    primaryKey: true,
+                },
+                balance: {
+                    type: DataTypes.DECIMAL(20, 2),
+                    allowNull: false,
+                    defaultValue: 0.00,
+                    get() {
+                        const value = this.getDataValue('balance');
+                        return value === null ? 0 : parseFloat(value.toString());
+                    },
+                },
             },
-        },
-    },
-    {
-        sequelize,
-        modelName: 'Wallet',
-        tableName: 'wallets',
-        timestamps: true,
-        underscored: true,
+            {
+                sequelize,
+                modelName: 'Wallet',
+                tableName: 'wallets',
+                timestamps: true,
+                underscored: true,
+            }
+        );
     }
-);
+}

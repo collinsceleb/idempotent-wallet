@@ -1,18 +1,12 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
-import { config } from './config/index';
-import { connectDatabase, syncDatabase } from './database/index';
-import { connectRedis } from './redis/index';
 
 async function bootstrap() {
-    // Database and Redis connections
-    await connectDatabase();
-    await syncDatabase();
-    await connectRedis();
-
     const app = await NestFactory.create(AppModule);
+    const configService = app.get(ConfigService);
 
     // Global validation pipe
     app.useGlobalPipes(new ValidationPipe({
@@ -21,7 +15,8 @@ async function bootstrap() {
     }));
 
     // Start server
-    await app.listen(config.port);
+    const port = configService.get<number>('port') || 3000;
+    await app.listen(port);
     console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();

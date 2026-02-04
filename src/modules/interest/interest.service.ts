@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { UniqueConstraintError } from 'sequelize';
-import { Account, InterestLog } from '../models/index';
-import { CreateAccountDto } from '../dto/create-account.dto';
+import { Account, InterestLog } from './models/index';
+import { CreateAccountDto } from './dto/create-account.dto';
 
 // Configure Decimal.js for high precision
 Decimal.set({

@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '../../../database/index.js';
+
 
 export interface AccountAttributes {
     id: string;
@@ -15,26 +15,29 @@ export class Account extends Model<AccountAttributes, AccountCreationAttributes>
     public balance!: string;
     public readonly createdAt!: Date;
     public readonly updatedAt!: Date;
+
+    static initialize(sequelize: any) {
+        Account.init(
+            {
+                id: {
+                    type: DataTypes.UUID,
+                    defaultValue: DataTypes.UUIDV4,
+                    primaryKey: true,
+                },
+                balance: {
+                    type: DataTypes.DECIMAL(20, 8),
+                    allowNull: false,
+                    defaultValue: '0.00000000',
+                },
+            },
+            {
+                sequelize,
+                modelName: 'Account',
+                tableName: 'accounts',
+                timestamps: true,
+                underscored: true,
+            }
+        );
+    }
 }
 
-Account.init(
-    {
-        id: {
-            type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
-            primaryKey: true,
-        },
-        balance: {
-            type: DataTypes.DECIMAL(20, 8),
-            allowNull: false,
-            defaultValue: '0.00000000',
-        },
-    },
-    {
-        sequelize,
-        modelName: 'Account',
-        tableName: 'accounts',
-        timestamps: true,
-        underscored: true,
-    }
-);

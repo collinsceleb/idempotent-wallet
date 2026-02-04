@@ -9,9 +9,9 @@ import {
     HttpStatus
 } from '@nestjs/common';
 import { Response } from 'express';
-import { InterestService } from '../services/interest.service';
-import { CreateAccountDto } from '../dto/create-account.dto';
-import { CalculateInterestDto } from '../dto/calculate-interest.dto';
+import { InterestService } from './interest.service';
+import { CreateAccountDto } from './dto/create-account.dto';
+import { CalculateInterestDto } from './dto/calculate-interest.dto';
 
 @Controller('accounts')
 export class AccountController {

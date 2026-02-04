@@ -1,10 +1,23 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { InterestModule } from './modules/interest/interest.module';
 import { AppController } from './app.controller';
+import { DatabaseModule } from './database/database.module';
+import { RedisModule } from './redis/redis.module';
+import configuration from './config/configuration';
 
 @Module({
-    imports: [WalletModule, InterestModule],
+    imports: [
+        ConfigModule.forRoot({
+            load: [configuration],
+            isGlobal: true,
+        }),
+        DatabaseModule,
+        RedisModule,
+        WalletModule,
+        InterestModule,
+    ],
     controllers: [AppController],
     providers: [],
 })

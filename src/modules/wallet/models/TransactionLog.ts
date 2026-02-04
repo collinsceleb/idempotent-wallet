@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '../../../database/index.js';
-import { Wallet } from './Wallet.js';
+
+import { Wallet } from './Wallet';
 
 export enum TransactionStatus {
     PENDING = 'PENDING',
@@ -37,86 +37,90 @@ export class TransactionLog
     public readonly updatedAt!: Date;
 
     // Associations
+    // Associations
     public fromWallet?: Wallet;
     public toWallet?: Wallet;
-}
 
-TransactionLog.init(
-    {
-        id: {
-            type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
-            primaryKey: true,
-        },
-        idempotencyKey: {
-            type: DataTypes.STRING(255),
-            allowNull: false,
-            unique: true,
-            field: 'idempotency_key',
-        },
-        fromWalletId: {
-            type: DataTypes.UUID,
-            allowNull: false,
-            field: 'from_wallet_id',
-            references: {
-                model: 'wallets',
-                key: 'id',
+    static initialize(sequelize: any) {
+        TransactionLog.init(
+            {
+                id: {
+                    type: DataTypes.UUID,
+                    defaultValue: DataTypes.UUIDV4,
+                    primaryKey: true,
+                },
+                idempotencyKey: {
+                    type: DataTypes.STRING(255),
+                    allowNull: false,
+                    unique: true,
+                    field: 'idempotency_key',
+                },
+                fromWalletId: {
+                    type: DataTypes.UUID,
+                    allowNull: false,
+                    field: 'from_wallet_id',
+                    references: {
+                        model: 'wallets',
+                        key: 'id',
+                    },
+                },
+                toWalletId: {
+                    type: DataTypes.UUID,
+                    allowNull: false,
+                    field: 'to_wallet_id',
+                    references: {
+                        model: 'wallets',
+                        key: 'id',
+                    },
+                },
+                amount: {
+                    type: DataTypes.DECIMAL(20, 2),
+                    allowNull: false,
+                    get() {
+                        const value = this.getDataValue('amount');
+                        return value === null ? 0 : parseFloat(value.toString());
+                    },
+                },
+                status: {
+                    type: DataTypes.ENUM(...Object.values(TransactionStatus)),
+                    allowNull: false,
+                    defaultValue: TransactionStatus.PENDING,
+                },
+                errorMessage: {
+                    type: DataTypes.TEXT,
+                    allowNull: true,
+                    field: 'error_message',
+                },
             },
-        },
-        toWalletId: {
-            type: DataTypes.UUID,
-            allowNull: false,
-            field: 'to_wallet_id',
-            references: {
-                model: 'wallets',
-                key: 'id',
-            },
-        },
-        amount: {
-            type: DataTypes.DECIMAL(20, 2),
-            allowNull: false,
-            get() {
-                const value = this.getDataValue('amount');
-                return value === null ? 0 : parseFloat(value.toString());
-            },
-        },
-        status: {
-            type: DataTypes.ENUM(...Object.values(TransactionStatus)),
-            allowNull: false,
-            defaultValue: TransactionStatus.PENDING,
-        },
-        errorMessage: {
-            type: DataTypes.TEXT,
-            allowNull: true,
-            field: 'error_message',
-        },
-    },
-    {
-        sequelize,
-        modelName: 'TransactionLog',
-        tableName: 'transaction_logs',
-        timestamps: true,
-        underscored: true,
+            {
+                sequelize,
+                modelName: 'TransactionLog',
+                tableName: 'transaction_logs',
+                timestamps: true,
+                underscored: true,
+            }
+        );
     }
-);
 
-// Define associations
-TransactionLog.belongsTo(Wallet, {
-    foreignKey: 'fromWalletId',
-    as: 'fromWallet',
-});
+    static associate() {
+        TransactionLog.belongsTo(Wallet, {
+            foreignKey: 'fromWalletId',
+            as: 'fromWallet',
+        });
 
-TransactionLog.belongsTo(Wallet, {
-    foreignKey: 'toWalletId',
-    as: 'toWallet',
-});
+        TransactionLog.belongsTo(Wallet, {
+            foreignKey: 'toWalletId',
+            as: 'toWallet',
+        });
 
-Wallet.hasMany(TransactionLog, {
-    foreignKey: 'fromWalletId',
-    as: 'outgoingTransactions',
-});
+        Wallet.hasMany(TransactionLog, {
+            foreignKey: 'fromWalletId',
+            as: 'outgoingTransactions',
+        });
 
-Wallet.hasMany(TransactionLog, {
-    foreignKey: 'toWalletId',
-    as: 'incomingTransactions',
-});
+        Wallet.hasMany(TransactionLog, {
+            foreignKey: 'toWalletId',
+            as: 'incomingTransactions',
+        });
+    }
+}
