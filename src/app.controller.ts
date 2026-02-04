@@ -1,7 +1,7 @@
 import { Controller, Get, HttpStatus, Res, Inject } from '@nestjs/common';
 import { Response } from 'express';
 import { Redis } from 'ioredis';
-import { REDIS } from './redis/index';
+import { REDIS } from './common/redis/index';
 
 @Controller()
 export class AppController {
