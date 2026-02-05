@@ -269,7 +269,3 @@ Each module (wallet, interest) is self-contained with:
 - Own models, services, controllers, routes
 - Minimal shared dependencies
 - Easy to extract into separate microservices
-
-## License
-
-ISC
