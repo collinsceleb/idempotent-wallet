@@ -7,12 +7,24 @@ import { Wallet, TransactionLog, TransactionStatus, Ledger, LedgerEntryType } fr
 import { CreateWalletDto } from './dto/create-wallet.dto';
 import { TransferDto } from './dto/transfer.dto';
 
-export interface TransferResult {
+export interface ApiResponse<T = any> {
     success: boolean;
-    transactionLog: TransactionLog;
-    message: string;
+    message?: string;
+    data?: T;
     isIdempotent?: boolean;
 }
+
+export interface TransferResponseData {
+    transactionId: string;
+    idempotencyKey: string;
+    fromWalletId: string;
+    toWalletId: string;
+    amount: number;
+    status: TransactionStatus;
+    createdAt: Date;
+}
+
+export interface TransferResult extends ApiResponse<TransferResponseData> { }
 
 export class InsufficientFundsError extends HttpException {
     constructor(message: string = 'Insufficient funds') {
@@ -78,11 +90,19 @@ export class TransferService {
         if (existingTransaction) {
             const result: TransferResult = {
                 success: existingTransaction.status === TransactionStatus.COMPLETED,
-                transactionLog: existingTransaction,
                 message:
                     existingTransaction.status === TransactionStatus.COMPLETED
                         ? 'Transfer already completed (idempotent response)'
                         : `Transfer previously ${existingTransaction.status.toLowerCase()}`,
+                data: {
+                    transactionId: existingTransaction.id,
+                    idempotencyKey: existingTransaction.idempotencyKey,
+                    fromWalletId: existingTransaction.fromWalletId,
+                    toWalletId: existingTransaction.toWalletId,
+                    amount: existingTransaction.amount,
+                    status: existingTransaction.status,
+                    createdAt: existingTransaction.createdAt,
+                },
                 isIdempotent: true,
             };
 
@@ -143,8 +163,16 @@ export class TransferService {
                     if (existingLog) {
                         const result: TransferResult = {
                             success: existingLog.status === TransactionStatus.COMPLETED,
-                            transactionLog: existingLog,
                             message: 'Transfer processed by concurrent request (idempotent response)',
+                            data: {
+                                transactionId: existingLog.id,
+                                idempotencyKey: existingLog.idempotencyKey,
+                                fromWalletId: existingLog.fromWalletId,
+                                toWalletId: existingLog.toWalletId,
+                                amount: existingLog.amount,
+                                status: existingLog.status,
+                                createdAt: existingLog.createdAt,
+                            },
                             isIdempotent: true,
                         };
 
@@ -230,8 +258,16 @@ export class TransferService {
 
             const result: TransferResult = {
                 success: true,
-                transactionLog,
                 message: 'Transfer completed successfully',
+                data: {
+                    transactionId: transactionLog.id,
+                    idempotencyKey: transactionLog.idempotencyKey,
+                    fromWalletId: transactionLog.fromWalletId,
+                    toWalletId: transactionLog.toWalletId,
+                    amount: transactionLog.amount,
+                    status: transactionLog.status,
+                    createdAt: transactionLog.createdAt,
+                }
             };
 
             await this.redis.set(cacheKey, JSON.stringify(result), 'EX', 86400);
@@ -267,48 +303,79 @@ export class TransferService {
         return Wallet.findByPk(walletId);
     }
 
-    async getWalletOrThrow(walletId: string): Promise<Wallet> {
+    async getWalletDetails(walletId: string): Promise<ApiResponse> {
         const wallet = await this.getWallet(walletId);
         if (!wallet) {
             throw new WalletNotFoundError(walletId);
         }
-        return wallet;
+        return {
+            success: true,
+            data: {
+                id: wallet.id,
+                balance: wallet.balance,
+                createdAt: wallet.createdAt,
+                updatedAt: wallet.updatedAt,
+            }
+        };
     }
 
-    async createWallet(createWalletDto: CreateWalletDto): Promise<Wallet> {
+    async createWallet(createWalletDto: CreateWalletDto): Promise<ApiResponse> {
         const initialBalance = createWalletDto.initialBalance || 0;
 
         if (initialBalance < 0) {
             throw new InvalidTransferError('Initial balance cannot be negative');
         }
 
-        return Wallet.create({
+        const wallet = await Wallet.create({
             balance: initialBalance,
         });
+
+        return {
+            success: true,
+            data: {
+                id: wallet.id,
+                balance: wallet.balance,
+                createdAt: wallet.createdAt,
+            }
+        };
     }
 
     async getTransactionHistory(
         walletId: string,
         limit: number = 50
-    ): Promise<TransactionLog[]> {
-        await this.getWalletOrThrow(walletId);
+    ): Promise<ApiResponse> {
+        await this.getWalletDetails(walletId);
 
-        return TransactionLog.findAll({
+        const transactions = await TransactionLog.findAll({
             where: {
                 [Op.or]: [{ fromWalletId: walletId }, { toWalletId: walletId }],
             },
             order: [['createdAt', 'DESC']],
             limit,
         });
+
+        return {
+            success: true,
+            data: transactions.map((tx) => ({
+                id: tx.id,
+                idempotencyKey: tx.idempotencyKey,
+                fromWalletId: tx.fromWalletId,
+                toWalletId: tx.toWalletId,
+                amount: tx.amount,
+                status: tx.status,
+                errorMessage: tx.errorMessage,
+                createdAt: tx.createdAt,
+            })),
+        };
     }
 
     async getLedgerEntries(
         walletId: string,
         limit: number = 50
-    ): Promise<Ledger[]> {
-        await this.getWalletOrThrow(walletId);
+    ): Promise<ApiResponse> {
+        await this.getWalletDetails(walletId);
 
-        return Ledger.findAll({
+        const ledgerEntries = await Ledger.findAll({
             where: { walletId },
             order: [['createdAt', 'DESC']],
             limit,
@@ -319,5 +386,19 @@ export class TransferService {
                 },
             ],
         });
+
+        return {
+            success: true,
+            data: ledgerEntries.map((entry) => ({
+                id: entry.id,
+                entryType: entry.entryType,
+                amount: entry.amount,
+                balanceBefore: entry.balanceBefore,
+                balanceAfter: entry.balanceAfter,
+                description: entry.description,
+                transactionLogId: entry.transactionLogId,
+                createdAt: entry.createdAt,
+            })),
+        };
     }
 }
