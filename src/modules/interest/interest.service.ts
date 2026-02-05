@@ -22,6 +22,12 @@ Decimal.set({
 });
 export const ANNUAL_INTEREST_RATE = new Decimal('0.275');
 
+export interface ApiResponse<T = any> {
+    success: boolean;
+    message?: string;
+    data?: T;
+}
+
 export interface DailyInterestResult {
     accountId: string;
     calculationDate: string;
@@ -32,6 +38,11 @@ export interface DailyInterestResult {
     daysInYear: number;
     newBalance: string;
     isNew: boolean;
+    createdAt?: Date;
+}
+
+export interface InterestCalculationResponse extends ApiResponse<DailyInterestResult> {
+    isNew?: boolean;
 }
 
 @Injectable()
@@ -78,7 +89,7 @@ export class InterestService {
     async calculateDailyInterest(
         accountId: string,
         date: Date = new Date()
-    ): Promise<DailyInterestResult> {
+    ): Promise<InterestCalculationResponse> {
         const calculationDate = date.toISOString().split('T')[0];
         const year = date.getFullYear();
 
@@ -91,17 +102,23 @@ export class InterestService {
 
         if (existingLog) {
             return {
-                accountId: existingLog.accountId,
-                calculationDate: existingLog.calculationDate,
-                principalBalance: existingLog.principalBalance,
-                interestAmount: existingLog.interestAmount,
-                annualRate: existingLog.annualRate,
-                dailyRate: new Decimal(existingLog.annualRate)
-                    .dividedBy(existingLog.daysInYear)
-                    .toFixed(8),
-                daysInYear: existingLog.daysInYear,
-                newBalance: existingLog.newBalance,
+                success: true,
+                message: 'Interest already calculated for this date (idempotent response)',
                 isNew: false,
+                data: {
+                    accountId: existingLog.accountId,
+                    calculationDate: existingLog.calculationDate,
+                    principalBalance: existingLog.principalBalance,
+                    interestAmount: existingLog.interestAmount,
+                    annualRate: existingLog.annualRate,
+                    dailyRate: new Decimal(existingLog.annualRate)
+                        .dividedBy(existingLog.daysInYear)
+                        .toFixed(8),
+                    daysInYear: existingLog.daysInYear,
+                    newBalance: existingLog.newBalance,
+                    isNew: false,
+                    createdAt: existingLog.createdAt,
+                }
             };
         }
 
@@ -131,15 +148,21 @@ export class InterestService {
             });
 
             return {
-                accountId: interestLog.accountId,
-                calculationDate: interestLog.calculationDate,
-                principalBalance: interestLog.principalBalance,
-                interestAmount: interestLog.interestAmount,
-                annualRate: interestLog.annualRate,
-                dailyRate: dailyRate.toFixed(8),
-                daysInYear: interestLog.daysInYear,
-                newBalance: interestLog.newBalance,
+                success: true,
+                message: 'Interest calculated successfully',
                 isNew: true,
+                data: {
+                    accountId: interestLog.accountId,
+                    calculationDate: interestLog.calculationDate,
+                    principalBalance: interestLog.principalBalance,
+                    interestAmount: interestLog.interestAmount,
+                    annualRate: interestLog.annualRate,
+                    dailyRate: dailyRate.toFixed(8),
+                    daysInYear: interestLog.daysInYear,
+                    newBalance: interestLog.newBalance,
+                    isNew: true,
+                    createdAt: interestLog.createdAt,
+                }
             };
         } catch (error) {
             if (error instanceof UniqueConstraintError) {
@@ -152,17 +175,23 @@ export class InterestService {
 
                 if (existingLog) {
                     return {
-                        accountId: existingLog.accountId,
-                        calculationDate: existingLog.calculationDate,
-                        principalBalance: existingLog.principalBalance,
-                        interestAmount: existingLog.interestAmount,
-                        annualRate: existingLog.annualRate,
-                        dailyRate: new Decimal(existingLog.annualRate)
-                            .dividedBy(existingLog.daysInYear)
-                            .toFixed(8),
-                        daysInYear: existingLog.daysInYear,
-                        newBalance: existingLog.newBalance,
+                        success: true,
+                        message: 'Interest already calculated for this date (idempotent response)',
                         isNew: false,
+                        data: {
+                            accountId: existingLog.accountId,
+                            calculationDate: existingLog.calculationDate,
+                            principalBalance: existingLog.principalBalance,
+                            interestAmount: existingLog.interestAmount,
+                            annualRate: existingLog.annualRate,
+                            dailyRate: new Decimal(existingLog.annualRate)
+                                .dividedBy(existingLog.daysInYear)
+                                .toFixed(8),
+                            daysInYear: existingLog.daysInYear,
+                            newBalance: existingLog.newBalance,
+                            isNew: false,
+                            createdAt: existingLog.createdAt,
+                        }
                     };
                 }
             }
@@ -171,37 +200,34 @@ export class InterestService {
         }
     }
 
-    async calculateInterestForDateRange(
-        accountId: string,
-        startDate: Date,
-        endDate: Date
-    ): Promise<DailyInterestResult[]> {
-        const results: DailyInterestResult[] = [];
-        const currentDate = new Date(startDate);
-
-        while (currentDate <= endDate) {
-            const result = await this.calculateDailyInterest(accountId, new Date(currentDate));
-            results.push(result);
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
-
-        return results;
-    }
-
     async getInterestHistory(
         accountId: string,
         limit: number = 30
-    ): Promise<InterestLog[]> {
-        await this.getAccountOrThrow(accountId);
+    ): Promise<ApiResponse> {
+        await this.getAccountDetails(accountId);
 
-        return InterestLog.findAll({
+        const history = await InterestLog.findAll({
             where: { accountId },
             order: [['calculationDate', 'DESC']],
             limit,
         });
+
+        return {
+            success: true,
+            data: history.map((log) => ({
+                id: log.id,
+                calculationDate: log.calculationDate,
+                principalBalance: log.principalBalance,
+                interestAmount: log.interestAmount,
+                annualRate: log.annualRate,
+                daysInYear: log.daysInYear,
+                newBalance: log.newBalance,
+                createdAt: log.createdAt,
+            })),
+        };
     }
 
-    async createAccount(createAccountDto: CreateAccountDto): Promise<Account> {
+    async createAccount(createAccountDto: CreateAccountDto): Promise<ApiResponse> {
         const initialBalance = createAccountDto.initialBalance || '0';
         const balance = new Decimal(initialBalance);
 
@@ -209,20 +235,37 @@ export class InterestService {
             throw new InvalidBalanceError('Initial balance cannot be negative');
         }
 
-        return Account.create({
+        const account = await Account.create({
             balance: balance.toFixed(8),
         });
+
+        return {
+            success: true,
+            data: {
+                id: account.id,
+                balance: account.balance,
+                createdAt: account.createdAt,
+            }
+        };
     }
 
     async getAccount(accountId: string): Promise<Account | null> {
         return Account.findByPk(accountId);
     }
 
-    async getAccountOrThrow(accountId: string): Promise<Account> {
+    async getAccountDetails(accountId: string): Promise<ApiResponse> {
         const account = await this.getAccount(accountId);
         if (!account) {
             throw new AccountNotFoundError(accountId);
         }
-        return account;
+        return {
+            success: true,
+            data: {
+                id: account.id,
+                balance: account.balance,
+                createdAt: account.createdAt,
+                updatedAt: account.updatedAt,
+            }
+        };
     }
 }

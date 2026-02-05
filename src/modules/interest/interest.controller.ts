@@ -24,31 +24,14 @@ export class InterestController {
         @Body() createAccountDto: CreateAccountDto,
         @Res() res: Response
     ): Promise<void> {
-        const account = await this.interestService.createAccount(createAccountDto);
-
-        res.status(HttpStatus.CREATED).json({
-            success: true,
-            data: {
-                id: account.id,
-                balance: account.balance,
-                createdAt: account.createdAt,
-            },
-        });
+        const result = await this.interestService.createAccount(createAccountDto);
+        res.status(HttpStatus.CREATED).json(result);
     }
 
     @Get(':id')
     async getAccountById(@Param('id') id: string, @Res() res: Response): Promise<void> {
-        const account = await this.interestService.getAccountOrThrow(id);
-
-        res.json({
-            success: true,
-            data: {
-                id: account.id,
-                balance: account.balance,
-                createdAt: account.createdAt,
-                updatedAt: account.updatedAt,
-            },
-        });
+        const result = await this.interestService.getAccountDetails(id);
+        res.status(HttpStatus.OK).json(result);
     }
 
     @Post(':id/calculate-interest')
@@ -60,13 +43,7 @@ export class InterestController {
         const date = calculateInterestDto.date ? new Date(calculateInterestDto.date) : new Date();
         const result = await this.interestService.calculateDailyInterest(id, date);
 
-        res.status(result.isNew ? HttpStatus.CREATED : HttpStatus.OK).json({
-            success: true,
-            message: result.isNew
-                ? 'Interest calculated successfully'
-                : 'Interest already calculated for this date (idempotent response)',
-            data: result,
-        });
+        res.status(result.isNew ? HttpStatus.CREATED : HttpStatus.OK).json(result);
     }
 
     @Get(':id/interest-history')
@@ -75,20 +52,7 @@ export class InterestController {
         @Query('limit', new DefaultValuePipe(30), ParseIntPipe) limit: number,
         @Res() res: Response
     ): Promise<void> {
-        const history = await this.interestService.getInterestHistory(id, limit);
-
-        res.json({
-            success: true,
-            data: history.map((log) => ({
-                id: log.id,
-                calculationDate: log.calculationDate,
-                principalBalance: log.principalBalance,
-                interestAmount: log.interestAmount,
-                annualRate: log.annualRate,
-                daysInYear: log.daysInYear,
-                newBalance: log.newBalance,
-                createdAt: log.createdAt,
-            })),
-        });
+        const result = await this.interestService.getInterestHistory(id, limit);
+        res.status(HttpStatus.OK).json(result);
     }
 }

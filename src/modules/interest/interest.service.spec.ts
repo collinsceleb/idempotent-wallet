@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Decimal } from 'decimal.js';
 import { InterestService, ANNUAL_INTEREST_RATE } from './interest.service';
+import { Account, InterestLog } from './entities/index';
 
 describe('InterestService', () => {
     let service: InterestService;
@@ -134,9 +135,6 @@ describe('InterestService', () => {
 
     describe('Daily interest calculation accuracy', () => {
         test('should calculate correct interest for #10,000 over one day (non-leap year)', () => {
-            // Annual rate: 27.5%
-            // Daily rate: 0.275 / 365 = 0.00075342465753424657
-            // Daily interest: 10000 * 0.00075342465753424657 = 7.5342465753424657
             const principal = new Decimal('10000');
             const dailyRate = service.calculateDailyRate(2023);
             const interest = service.calculateInterest(principal, dailyRate);
@@ -145,9 +143,6 @@ describe('InterestService', () => {
         });
 
         test('should calculate correct interest for #10,000 over one day (leap year)', () => {
-            // Annual rate: 27.5%
-            // Daily rate: 0.275 / 366 = 0.00075136612021857923
-            // Daily interest: 10000 * 0.00075136612021857923 = 7.5136612021857923
             const principal = new Decimal('10000');
             const dailyRate = service.calculateDailyRate(2024);
             const interest = service.calculateInterest(principal, dailyRate);
@@ -165,10 +160,7 @@ describe('InterestService', () => {
                 balance = service.calculateNewBalance(balance, interest);
             }
 
-            // The final balance after daily compounding for a year
-            // Should be slightly more than 10000 * 1.275 = 12750 due to compounding
             expect(balance.toNumber()).toBeGreaterThan(12750);
-            // With daily compounding at 27.5% the actual result
             expect(balance.toFixed(2)).toBe('13163.94');
         });
 
@@ -181,9 +173,7 @@ describe('InterestService', () => {
                 balance = service.calculateNewBalance(balance, interest);
             }
 
-            // Similar to non-leap year but with one extra day of compounding
             expect(balance.toNumber()).toBeGreaterThan(12750);
-            // Leap year result - slightly different due to daily rate difference
             expect(balance.toFixed(2)).toBe('13163.95');
         });
     });
@@ -203,6 +193,73 @@ describe('InterestService', () => {
             const interest = service.calculateInterest(principal, dailyRate);
             // Should maintain precision
             expect(interest.decimalPlaces()).toBeLessThanOrEqual(20);
+        });
+    });
+
+    describe('createAccount', () => {
+        it('should create an account and return an ApiResponse', async () => {
+            const createDto = { initialBalance: '100' };
+            const mockAccount = {
+                id: '123',
+                balance: '100.00000000',
+                createdAt: new Date(),
+            };
+
+            jest.spyOn(Account, 'create').mockResolvedValue(mockAccount as any);
+
+            const result = await service.createAccount(createDto);
+
+            expect(result.success).toBe(true);
+            expect(result.data?.balance).toBe('100.00000000');
+            expect(Account.create).toHaveBeenCalledWith({ balance: '100.00000000' });
+        });
+    });
+
+    describe('calculateDailyInterest', () => {
+        it('should calculate interest and return proper response', async () => {
+            const accountId = 'acc1';
+            const mockAccount = { id: accountId, balance: '1000', update: jest.fn() };
+
+            jest.spyOn(InterestLog, 'findOne').mockResolvedValue(null);
+            jest.spyOn(Account, 'findByPk').mockResolvedValue(mockAccount as any);
+            jest.spyOn(InterestLog, 'create').mockResolvedValue({
+                id: 'log1',
+                accountId,
+                calculationDate: '2023-01-01',
+                principalBalance: '1000.00000000',
+                interestAmount: '0.75342466',
+                annualRate: '0.275000',
+                daysInYear: 365,
+                newBalance: '1000.75342466',
+                createdAt: new Date(),
+            } as any);
+
+            const result = await service.calculateDailyInterest(accountId, new Date('2023-01-01'));
+
+            expect(result.success).toBe(true);
+            expect(result.isNew).toBe(true);
+            expect(result.data?.principalBalance).toBe('1000.00000000');
+            expect(result.data?.interestAmount).toBe('0.75342466');
+            expect(mockAccount.update).toHaveBeenCalled();
+        });
+    });
+
+    describe('getInterestHistory', () => {
+        it('should return history logs wrapped in ApiResponse', async () => {
+            const accountId = 'acc1';
+            const mockLogs = [
+                { id: '1', calculationDate: '2023-01-02', interestAmount: '1' },
+                { id: '2', calculationDate: '2023-01-01', interestAmount: '1' },
+            ];
+
+            jest.spyOn(service, 'getAccountDetails').mockResolvedValue({ success: true } as any);
+            jest.spyOn(InterestLog, 'findAll').mockResolvedValue(mockLogs as any);
+
+            const result = await service.getInterestHistory(accountId);
+
+            expect(result.success).toBe(true);
+            expect(result.data).toHaveLength(2);
+            expect(result.data![0].id).toBe('1');
         });
     });
 });
