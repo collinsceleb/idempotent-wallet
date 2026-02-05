@@ -33,8 +33,6 @@ export class Ledger extends Model<LedgerAttributes, LedgerCreationAttributes> im
     public description!: string | null;
     public readonly createdAt!: Date;
 
-    // Associations
-    // Associations
     public wallet?: Wallet;
     public transactionLog?: TransactionLog;
 

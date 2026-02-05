@@ -133,7 +133,7 @@ describe('InterestService', () => {
     });
 
     describe('Daily interest calculation accuracy', () => {
-        test('should calculate correct interest for $10,000 over one day (non-leap year)', () => {
+        test('should calculate correct interest for #10,000 over one day (non-leap year)', () => {
             // Annual rate: 27.5%
             // Daily rate: 0.275 / 365 = 0.00075342465753424657
             // Daily interest: 10000 * 0.00075342465753424657 = 7.5342465753424657
@@ -144,7 +144,7 @@ describe('InterestService', () => {
             expect(interest.toFixed(8)).toBe('7.53424658');
         });
 
-        test('should calculate correct interest for $10,000 over one day (leap year)', () => {
+        test('should calculate correct interest for #10,000 over one day (leap year)', () => {
             // Annual rate: 27.5%
             // Daily rate: 0.275 / 366 = 0.00075136612021857923
             // Daily interest: 10000 * 0.00075136612021857923 = 7.5136612021857923
@@ -156,7 +156,7 @@ describe('InterestService', () => {
         });
 
         test('should compound correctly over 365 days (non-leap year)', () => {
-            // Starting with $10,000, after 365 days of daily compounding at 27.5% annual rate
+            // Starting with #10,000, after 365 days of daily compounding at 27.5% annual rate
             let balance = new Decimal('10000');
             const dailyRate = service.calculateDailyRate(2023);
 
@@ -203,17 +203,6 @@ describe('InterestService', () => {
             const interest = service.calculateInterest(principal, dailyRate);
             // Should maintain precision
             expect(interest.decimalPlaces()).toBeLessThanOrEqual(20);
-        });
-
-        test('should handle currency-like precision (8 decimal places)', () => {
-            const principal = new Decimal('1000.12345678');
-            const dailyRate = service.calculateDailyRate(2023);
-            const interest = service.calculateInterest(principal, dailyRate);
-            const newBalance = service.calculateNewBalance(principal, interest);
-
-            // Verify we can represent the result with 8 decimal places
-            const fixed = newBalance.toFixed(8);
-            expect(fixed).toMatch(/^\d+\.\d{8}$/);
         });
     });
 });

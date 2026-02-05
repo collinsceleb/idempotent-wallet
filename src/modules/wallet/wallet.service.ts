@@ -1,6 +1,8 @@
 import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
+import { Redis } from 'ioredis';
 import { Transaction, UniqueConstraintError, Op, Sequelize } from 'sequelize';
 import { SEQUELIZE } from '../../database/index';
+import { REDIS } from '../../common/redis/redis.module';
 import { Wallet, TransactionLog, TransactionStatus, Ledger, LedgerEntryType } from './entities/index';
 import { CreateWalletDto } from './dto/create-wallet.dto';
 import { TransferDto } from './dto/transfer.dto';
@@ -40,7 +42,9 @@ export class IdempotencyKeyNotFoundError extends HttpException {
 export class TransferService {
     constructor(
         @Inject(SEQUELIZE)
-        private readonly sequelize: Sequelize
+        private readonly sequelize: Sequelize,
+        @Inject(REDIS)
+        private readonly redis: Redis
     ) { }
 
     /**
@@ -60,12 +64,19 @@ export class TransferService {
             throw new InvalidTransferError('Cannot transfer to the same wallet');
         }
 
+        const cacheKey = `idempotency:${idempotencyKey}`;
+        const cachedResult = await this.redis.get(cacheKey);
+
+        if (cachedResult) {
+            return JSON.parse(cachedResult);
+        }
+
         const existingTransaction = await TransactionLog.findOne({
             where: { idempotencyKey },
         });
 
         if (existingTransaction) {
-            return {
+            const result: TransferResult = {
                 success: existingTransaction.status === TransactionStatus.COMPLETED,
                 transactionLog: existingTransaction,
                 message:
@@ -74,6 +85,9 @@ export class TransferService {
                         : `Transfer previously ${existingTransaction.status.toLowerCase()}`,
                 isIdempotent: true,
             };
+
+            await this.redis.set(cacheKey, JSON.stringify(result), 'EX', 86400); // 24 hours
+            return result;
         }
 
         const transaction = await this.sequelize.transaction({
@@ -127,12 +141,15 @@ export class TransferService {
                     });
 
                     if (existingLog) {
-                        return {
+                        const result: TransferResult = {
                             success: existingLog.status === TransactionStatus.COMPLETED,
                             transactionLog: existingLog,
                             message: 'Transfer processed by concurrent request (idempotent response)',
                             isIdempotent: true,
                         };
+
+                        await this.redis.set(cacheKey, JSON.stringify(result), 'EX', 86400);
+                        return result;
                     }
 
                     throw new Error('Failed to retrieve existing transaction log');
@@ -211,11 +228,14 @@ export class TransferService {
 
             await transactionLog.reload();
 
-            return {
+            const result: TransferResult = {
                 success: true,
                 transactionLog,
                 message: 'Transfer completed successfully',
             };
+
+            await this.redis.set(cacheKey, JSON.stringify(result), 'EX', 86400);
+            return result;
         } catch (error) {
             try {
                 await transaction.rollback();
