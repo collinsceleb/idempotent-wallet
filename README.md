@@ -239,12 +239,12 @@ pnpm test:coverage
 ### Test Coverage
 
 The interest accumulator includes comprehensive tests for:
-- ✅ Leap year detection (divisible by 4/100/400 rules)
-- ✅ Days in year calculation (365 vs 366)
-- ✅ Daily interest rate calculation
-- ✅ Interest compounding accuracy
-- ✅ Floating-point precision handling
-- ✅ Edge cases (zero balance, large numbers)
+- Leap year detection (divisible by 4/100/400 rules)
+- Days in year calculation (365 vs 366)
+- Daily interest rate calculation
+- Interest compounding accuracy
+- Floating-point precision handling
+- Edge cases (zero balance, large numbers)
 
 ## Architectural Decisions
 
